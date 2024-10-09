@@ -4,33 +4,6 @@ from random import randint
 from time import time
 from Enderecos.importante import importante
 
-def Abrir_arquivo(entrada,lista):
-	"""
-	Abre os Arquivos e guarda os endereços
-	"""
-	try:
-		with open(entrada, 'rb') as arquivo:
-			while True:
-				conteudo = arquivo.read(4)  # Lê o conteúdo completo do arquivo
-				if(not conteudo):
-					break
-				else:
-					inteiro = int.from_bytes(conteudo, byteorder='big', signed=False)
-					lista.append(inteiro)
-
-	except FileNotFoundError:
-		print('Arquivo não encontrado!')
-	
-
-
-def Com_flag():
-	pass
-
-def Sem_flag():
-	pass
-
-
-
 class Cache:
 	def __init__(self, nsets, bsize, assoc, repl):
 		self.nsets=nsets
@@ -149,6 +122,44 @@ class Cache:
 					#print(self.fila_acessos[indice])
 
 
+def Abrir_arquivo(entrada,lista):
+	"""
+	Abre os Arquivos e guarda os endereços
+	"""
+	try:
+		with open(entrada, 'rb') as arquivo:
+			while True:
+				conteudo = arquivo.read(4)  # Lê o conteúdo completo do arquivo
+				if(not conteudo):
+					break
+				else:
+					inteiro = int.from_bytes(conteudo, byteorder='big', signed=False)
+					lista.append(inteiro)
+
+	except FileNotFoundError:
+		print('Arquivo não encontrado!')
+	
+
+def SaidaPadrao():
+	print(acessos, end=" ")
+	print('{:.4f}'.format(hits/acessos), end=" ")
+	misses = misses_compulsorio+misses_capacidade+misses_conflito ## <== Aqui tava errado miss de capacidade 2x
+	print('{:.4f}'.format(misses/acessos), end=" ")
+	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
+	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
+	print(f"{misses_conflito/misses:.2f}", end="\n")
+
+def SaidaExtra(tempo_exec):
+	print('tempo de execução: {:.4f} s'.format(tempo_exec))
+	print(acessos, end=" ")
+	print('{:.4f}'.format(hits/acessos), end=" ")
+	misses = misses_compulsorio+misses_capacidade+misses_conflito ## <== Aqui tava errado miss de capacidade 2x
+	print('{:.4f}'.format(misses/acessos), end=" ")
+	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
+	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
+	print(f"{misses_conflito/misses:.2f}", end="\n")
+
+
 
 def main():
 	if (len(sys.argv) != 7):
@@ -180,15 +191,11 @@ def main():
 	fim = time()
 	
 	# Saída
+	if flag == 1:
+		SaidaPadrao()
+	else:
+		SaidaExtra(fim-inicio)
 
-	print('tempo de execução: {:.2f}'.format(fim-inicio))
-	print(acessos, end=" ")
-	print('{:.4f}'.format(hits/acessos), end=" ")
-	misses = misses_compulsorio+misses_capacidade+misses_conflito ## <== Aqui tava errado miss de capacidade 2x
-	print('{:.4f}'.format(misses/acessos), end=" ")
-	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
-	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
-	print(f"{misses_conflito/misses:.2f}", end="\n")
 	#importante()				
 															 
 															#<--------------
