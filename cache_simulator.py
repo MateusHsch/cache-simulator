@@ -1,6 +1,7 @@
 from math import log
 import sys
 from random import randint
+from time import time
 
 def Abrir_arquivo(entrada,lista):
 	"""
@@ -91,25 +92,44 @@ class Cache:
 
 
 	def Acessar_Endereco(self, endereco:int) -> None:
-		miss_atual = 1
+		teve_miss = True
+
+		# Pega o tag e o indice do endereço
 		tag = endereco >> (self.bits_indice + self.bits_offset)
-		
-		#print(endereco)
 		indice = (endereco >> self.bits_offset) & (2**self.bits_indice -1)
 		print('indice: {}'.format(indice))
+
+		# Permite o acesso as variáveis globais
+		global hits
+		global misses_compulsorio
+		global misses_capacidade
+		global misses_conflito  # <===================== Tinhamos esquecido de colocar esse global devolta aqui...
+		
+		# Testa se há algum bit válido no conjunto selecionado
 		if(1 in self.validade[indice]):
-			print("aaa")
-			for c in range(0,len(self.validade[indice])):
+			print('capacidade {}/{}'.format(self.blocos_ocupados, self.blocos))
+			# Testa se os bits válidos geram um hit
+			for c in range(0, self.assoc):
 				if(tag==self.tag[indice][c]):
-					miss_atual = 0
-					global hits
+					teve_miss = False
 					hits += 1
 					print('hit')
-
-			if miss_atual == 1:
-				# cache cheia => miss capacidade
-				if self.blocos_ocupados == self.blocos:
-					global misses_capacidade
+			# Se não teve hit, verifica o tipo de miss
+			if teve_miss:
+				# Se há entrada livre => miss compulsório
+				if 0 in self.validade[indice]:
+					print("miss compulsório")
+					misses_compulsorio+=1
+					self.blocos_ocupados+=1
+					# Coloca o end na primeira posição disponível
+					for i in range(0, self.assoc):
+						if self.validade[indice][i] == 0:
+							self.validade[indice][i] = 1
+							self.tag[indice][i] = tag
+							break
+				# Se a cache está cheia => miss capacidade
+				elif self.blocos_ocupados == self.blocos:
+					print("miss de capacidade")
 					misses_capacidade+=1
 					if(self.assoc==1):
 						self.validade[indice][0] = 1
@@ -123,10 +143,10 @@ class Cache:
 					elif self.subs=="F":
 						FIFO(self.assoc)
 					
-
+				# Senão => miss conflito
 				else:
-					global misses_conflito
-					misses_conflito+1
+					print("miss de conflito")
+					misses_conflito+=1
 					if(self.assoc==1):
 						self.validade[indice][0] = 1
 						self.tag[indice][0] = tag
@@ -138,15 +158,25 @@ class Cache:
 						LRU(self.assoc)
 					elif self.subs=="F":
 						FIFO(self.assoc)
-			
-			
+
+		# Se não há bit válido => miss compulsório
 		else:
-			global misses_compulsorio
 			misses_compulsorio+=1
+			self.blocos_ocupados+=1
+			print("miss compulsório")
+			# Coloca o end na primeira posição disponível
+			for i in range(0, self.assoc):
+				if self.validade[indice][i] == 0:
+					self.validade[indice][i] = 1
+					self.tag[indice][i] = tag
+					break
+
+			
+"""
+			
 			if(self.assoc==1):
 				self.validade[indice][0] = 1
 				self.tag[indice][0] = tag
-				print("mc")
 			elif self.subs=="R":
 				entrada = Random(self.assoc)
 				self.validade[indice][entrada] = 1
@@ -155,7 +185,7 @@ class Cache:
 				LRU(self.assoc)
 			elif self.subs=="F":
 				FIFO(self.assoc)
-
+"""
 
 
 
@@ -179,21 +209,26 @@ def main():
 	#cache.Printf(cache.validade)                       	        
 	#cache.Printf(cache.tag)
 
-	#for end in enderecos:
+	# Acessas os endereços um a um
+	inicio = time()
+	global acessos
 	for i in range(0,len(enderecos)):
-		global acessos
 		acessos += 1
 		print(enderecos[i])
 		cache.Acessar_Endereco(enderecos[i])
 		print('-'*5)
+
+	fim = time()
 	
+	# Saída
+	print('tempo de execução: {:.2f}'.format(fim-inicio))
 	print(acessos, end=" ")
 	print('{:.4f}'.format(hits/acessos), end=" ")
-	misses = misses_compulsorio+misses_capacidade+misses_capacidade
+	misses = misses_compulsorio+misses_capacidade+misses_conflito ## <== Aqui tava errado miss de capacidade 2x
 	print('{:.4f}'.format(misses/acessos), end=" ")
-	print(f"{misses_compulsorio/misses:.2f}", end=" ")			
-	print(f"{misses_conflito/misses:.2}", end=" ")	
-	print('{:.2f}'.format(misses_capacidade/misses), end=" ")						
+	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
+	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
+	print(f"{misses_conflito/misses:.2f}", end="\n")
 															 
 															#<--------------
 
@@ -231,3 +266,12 @@ if __name__ == '__main__':
 
 # python cache_simulator.py 2 2 2 2 1 arquivo_de_entrada
 # python cache_simulator.py 32 1 1 R 1 bin_100.bin
+#
+# Exemplo 1
+# python cache_simulator.py 256 4 1 R 1 bin_100.bin
+#
+# Exemplo 2
+# python cache_simulator.py 128 2 4 R 1 bin_1000.bin
+#
+# Exemplo 3
+# python cache_simulator.py 16 2 8 R 1 bin_10000.bin
