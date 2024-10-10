@@ -5,9 +5,7 @@ from time import time
 from graficos import mostrarGrafico
 
 def Abrir_arquivo(entrada,lista):
-	"""
-	Abre os Arquivos e guarda os endereços
-	"""
+	# Abre os Arquivos e guarda os endereços
 	try:
 		with open(entrada, 'rb') as arquivo:
 			while True:
@@ -54,14 +52,10 @@ class Cache:
 		self.bits_offset = int(log(bsize,2))
 		self.bits_indice = int(log(nsets,2))
 		self.bits_tag = 32 - self.bits_offset - self.bits_indice
-		self.validade = [[0 for c in range(0, self.assoc)] for l in range(0, self.nsets)] # list compreension
-		self.tag = [[-1 for c in range(0, self.assoc)] for l in range(0, self.nsets)] # list compreension
-		self.fila_acessos = [[] for l in range(0, self.nsets)]  # list compreension
+		self.validade = [[0 for c in range(0, self.assoc)] for l in range(0, self.nsets)]
+		self.tag = [[-1 for c in range(0, self.assoc)] for l in range(0, self.nsets)]
+		self.fila_acessos = [[] for l in range(0, self.nsets)]
 	
-	def Printf(self, lst: list[list[int]])->None:
-		for c in lst:
-			print("a")
-		print('\n\n\n')
 
 	def PegarDoRandom(self):
 		return randint(0, self.assoc-1)
@@ -73,7 +67,7 @@ class Cache:
 			self.fila_acessos[indice].append(tag)
 			return entrada
 		except ValueError:
-			return 0 # Nunca acontece...
+			return 0
 
 
 	def Acessar_Endereco(self, endereco:int) -> None:
@@ -82,23 +76,18 @@ class Cache:
 		# Pega o tag e o indice do endereço
 		tag = endereco >> (self.bits_indice + self.bits_offset)
 		indice = (endereco >> self.bits_offset) & (2**self.bits_indice -1)
-		#print('indice: {}'.format(indice))
-		#print('tag: {}'.format(tag))
 
 		# Permite o acesso as variáveis globais
 		global hits
 		global misses_compulsorio
 		global misses_capacidade
 		global misses_conflito
-		
-		# print('capacidade {}/{}'.format(self.blocos_ocupados, self.blocos))
 
 		# Testa se os bits válidos geram um hit
 		for c in range(0, self.assoc):
 			if(self.validade[indice][c] == 1 and tag == self.tag[indice][c]):
 				teve_miss = False
 				hits += 1
-				# print('hit')
 				if self.repl == 'L':
 					for i in range(0,len(self.fila_acessos[indice])):
 						if self.fila_acessos[indice][i] == tag:
@@ -109,14 +98,12 @@ class Cache:
 		if teve_miss:
 			# Se há entrada livre => miss compulsório
 			if 0 in self.validade[indice]:
-				#print("miss compulsório")
 				misses_compulsorio+=1
 				self.blocos_ocupados+=1
 
 				# Sempre adiciona no fim da lista (mais recente)
 				if self.repl == "F" or self.repl == "L":
 					self.fila_acessos[indice].append(tag)
-					#print(self.fila_acessos[indice])
 
 				# Coloca o end na primeira posição disponível
 				for i in range(0, self.assoc):
@@ -127,7 +114,6 @@ class Cache:
 
 			# Se a cache está cheia => miss capacidade
 			elif self.blocos_ocupados == self.blocos:
-				#print("miss de capacidade")
 				misses_capacidade += 1
 				if(self.assoc == 1):
 					self.validade[indice][0] = 1
@@ -140,7 +126,6 @@ class Cache:
 					entrada = self.PegarDaFila(indice, tag)
 					self.validade[indice][entrada] = 1
 					self.tag[indice][entrada] = tag
-					#print(self.fila_acessos[indice])	
 				
 			# Senão => miss conflito
 			else:
@@ -190,6 +175,7 @@ def main():
 	tempo_exec = fim-inicio
 	Verifica_flag(flag)
 	
+# Variaveis globais
 tempo_exec=0
 acessos=0
 hits=0
