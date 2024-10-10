@@ -4,6 +4,30 @@ from random import randint
 from time import time
 from Enderecos.importante import importante
 
+def Abrir_arquivo(entrada,lista):
+	"""
+	Abre os Arquivos e guarda os endereços
+	"""
+	try:
+		with open(entrada, 'rb') as arquivo:
+			while True:
+				conteudo = arquivo.read(4)  # Lê o conteúdo completo do arquivo
+				if(not conteudo):
+					break
+				else:
+					inteiro = int.from_bytes(conteudo, byteorder='big', signed=False)
+					lista.append(inteiro)
+
+	except FileNotFoundError:
+		print('Arquivo não encontrado!')
+	
+
+def SaidaPadrao():
+	pass
+
+def SaidaExtra():
+	pass
+
 class Cache:
 	def __init__(self, nsets, bsize, assoc, repl):
 		self.nsets=nsets
@@ -25,9 +49,11 @@ class Cache:
 			print(c)
 		print('\n\n\n')
 
+	# <====================================== Coloquei as políticas de subst. aqui
 	def PegarDoRandom(self):
 		return randint(0, self.assoc-1)
 	
+	# <======================================== Parece que funciona...
 	def PegarDaFila(self, indice: int, tag: int) -> int:
 		try:
 			entrada = self.tag[indice].index(self.fila_acessos[indice][0])
@@ -44,8 +70,8 @@ class Cache:
 		# Pega o tag e o indice do endereço
 		tag = endereco >> (self.bits_indice + self.bits_offset)
 		indice = (endereco >> self.bits_offset) & (2**self.bits_indice -1)
-		#print('indice: {}'.format(indice))
-		#print('tag: {}'.format(tag))
+		print('indice: {}'.format(indice))
+		print('tag: {}'.format(tag))
 
 		# Permite o acesso as variáveis globais
 		global hits
@@ -53,32 +79,30 @@ class Cache:
 		global misses_capacidade
 		global misses_conflito
 		
-		#print('capacidade {}/{}'.format(self.blocos_ocupados, self.blocos))
+		print('capacidade {}/{}'.format(self.blocos_ocupados, self.blocos))
 
 		# Testa se os bits válidos geram um hit
 		for c in range(0, self.assoc):
 			if(self.validade[indice][c] == 1 and tag == self.tag[indice][c]):
 				teve_miss = False
 				hits += 1
-				#print('hit')
+				print('hit')
 
-				# Atualiza o tag na fila caso usando "L"
-				if self.repl == 'L':
-					self.fila_acessos[indice].remove(tag)
-					self.fila_acessos[indice].append(tag)
+				# <======================================= Atualizar fila.. LRU
+				
 		
 		# Se não teve hit, verifica o tipo de miss
 		if teve_miss:
 			# Se há entrada livre => miss compulsório
 			if 0 in self.validade[indice]:
-				#print("miss compulsório")
+				print("miss compulsório")
 				misses_compulsorio+=1
 				self.blocos_ocupados+=1
 
-				# Insere o tag na fila se usando "L" ou "R"
+				# Sempre adiciona no fim da lista (mais recente)
 				if self.repl == "F" or self.repl == "L":
 					self.fila_acessos[indice].append(tag)
-					#print(self.fila_acessos[indice])
+					print(self.fila_acessos[indice])
 
 				# Coloca o end na primeira posição disponível
 				for i in range(0, self.assoc):
@@ -89,7 +113,7 @@ class Cache:
 
 			# Se a cache está cheia => miss capacidade
 			elif self.blocos_ocupados == self.blocos:
-				#print("miss de capacidade")
+				print("miss de capacidade")
 				misses_capacidade += 1
 				if(self.assoc == 1):
 					self.validade[indice][0] = 1
@@ -98,15 +122,15 @@ class Cache:
 					entrada = self.PegarDoRandom()
 					self.validade[indice][entrada] = 1
 					self.tag[indice][entrada] = tag
-				elif self.repl == "F" or self.repl == "L":
+				elif self.repl == "F" or self.repl == "L": # Sempre retira da lista o primeiro (mais antigo)
 					entrada = self.PegarDaFila(indice, tag)
 					self.validade[indice][entrada] = 1
 					self.tag[indice][entrada] = tag
-					#print(self.fila_acessos[indice])
+					print(self.fila_acessos[indice])
 				
 			# Senão => miss conflito
 			else:
-				#print("miss de conflito")
+				print("miss de conflito")
 				misses_conflito += 1
 				if(self.assoc == 1):
 					self.validade[indice][0] = 1
@@ -119,45 +143,10 @@ class Cache:
 					entrada = self.PegarDaFila(indice, tag)
 					self.validade[indice][entrada] = 1
 					self.tag[indice][entrada] = tag
-					#print(self.fila_acessos[indice])
+					print(self.fila_acessos[indice])
 
 
-def Abrir_arquivo(entrada,lista):
-	"""
-	Abre os Arquivos e guarda os endereços
-	"""
-	try:
-		with open(entrada, 'rb') as arquivo:
-			while True:
-				conteudo = arquivo.read(4)  # Lê o conteúdo completo do arquivo
-				if(not conteudo):
-					break
-				else:
-					inteiro = int.from_bytes(conteudo, byteorder='big', signed=False)
-					lista.append(inteiro)
 
-	except FileNotFoundError:
-		print('Arquivo não encontrado!')
-	
-
-def SaidaPadrao():
-	print(acessos, end=" ")
-	print('{:.4f}'.format(hits/acessos), end=" ")
-	misses = misses_compulsorio+misses_capacidade+misses_conflito ## <== Aqui tava errado miss de capacidade 2x
-	print('{:.4f}'.format(misses/acessos), end=" ")
-	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
-	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
-	print(f"{misses_conflito/misses:.2f}", end="\n")
-
-def SaidaExtra(tempo_exec):
-	print('tempo de execução: {:.4f} s'.format(tempo_exec))
-	print(acessos, end=" ")
-	print('{:.4f}'.format(hits/acessos), end=" ")
-	misses = misses_compulsorio+misses_capacidade+misses_conflito ## <== Aqui tava errado miss de capacidade 2x
-	print('{:.4f}'.format(misses/acessos), end=" ")
-	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
-	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
-	print(f"{misses_conflito/misses:.2f}", end="\n")
 
 
 
@@ -184,19 +173,23 @@ def main():
 	global acessos
 	for i in range(0,len(enderecos)):
 		acessos += 1
-		#print('endereço: {}'.format(enderecos[i]))
+		print('endereço: {}'.format(enderecos[i]))
 		cache.Acessar_Endereco(enderecos[i])
-		#print('='*10)
+		print('='*10)
 
 	fim = time()
+	tempo_exec = fim-inicio
 	
 	# Saída
-	if flag == 1:
-		SaidaPadrao()
-	else:
-		SaidaExtra(fim-inicio)
-
-	#importante()				
+	print('tempo de execução: {:.4f} s'.format(tempo_exec))
+	print(acessos, end=" ")
+	print('{:.4f}'.format(hits/acessos), end=" ")
+	misses = misses_compulsorio+misses_capacidade+misses_capacidade ## <== Aqui tava errado miss de capacidade 2x
+	print('{:.4f}'.format(misses/acessos), end=" ")
+	print(f"{misses_compulsorio/misses:.2f}", end=" ")		
+	print('{:.2f}'.format(misses_capacidade/misses), end=" ")		
+	print(f"{misses_conflito/misses:.2f}", end="\n")
+	importante()				
 															 
 															#<--------------
 
@@ -221,27 +214,3 @@ if __name__ == '__main__':
 
 # Exemplo 3
 # python cache_simulator.py 16 2 8 R 1 bin_10000.bin
-
-# Exemplo 4
-# python cache_simulator.py 512 8 2 R 1 vortex.in.sem.persons.bin
-
-# Exemplo 5
-# python cache_simulator.py 1 4 32 R 1 vortex.in.sem.persons.bin
-
-# Exemplo 6
-# python cache_simulator.py 2 1 8 R 1 bin_100.bin
-
-# Exemplo 7
-# python cache_simulator.py 2 1 8 L 1 bin_100.bin
-
-# Exemplo 8
-# python cache_simulator.py 2 1 8 F 1 bin_100.bin
-
-# Exemplo 9
-# python cache_simulator.py 1 4 32 R 1 vortex.in.sem.persons.bin
-
-# Exemplo 10
-# python cache_simulator.py 1 4 32 L 1 vortex.in.sem.persons.bin
-
-# Exemplo 11
-# python cache_simulator.py 1 4 32 F 1 vortex.in.sem.persons.bin
