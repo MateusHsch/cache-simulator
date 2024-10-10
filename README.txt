@@ -1,6 +1,5 @@
 Nomes: Jonatha Viegas da Silva, Mateus Henrique Schröpfer
 Link do github: https://github.com/MateusHsch/cache-simulator
-link 2: 
 Simulador de Cache
 Um simulador de cache que funciona por um prompt na linha de comandos.
 Formato do prompt: python cache_simulator.py <nsets> <bsize> <assoc> <substituição> <flag_saida> arquivo_de_entrada
